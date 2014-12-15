@@ -377,4 +377,7 @@ module.exports = (function() {
 
     TWEEN.Interpolation = Interpolation;
 
+
+    return TWEEN;
+
 })();
