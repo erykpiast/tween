@@ -1,0 +1,1 @@
+var Tween = require('../index');
