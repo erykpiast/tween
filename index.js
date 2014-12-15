@@ -42,7 +42,7 @@ module.exports = (function() {
 
             },
 
-            update: function ( time ) {
+            update: function ( time, backward ) {
 
                 if ( _tweens.length === 0 ) {
                     return false;
@@ -50,11 +50,9 @@ module.exports = (function() {
 
                 var i = 0;
 
-                time = (time !== undefined ? time : window.performance.now());
-
                 while ( i < _tweens.length ) {
 
-                    if ( _tweens[ i ].update( time ) ) {
+                    if ( _tweens[ i ].update( time, backward ) ) {
 
                         i++;
 
@@ -80,13 +78,10 @@ module.exports = (function() {
         var _valuesEnd = {};
         var _valuesStartRepeat = {};
         var _duration = 1000;
-        var _repeat = 0;
         var _isPlaying = false;
-        var _delayTime = 0;
         var _startTime = null;
         var _easingFunction = TWEEN.Easing.Linear.None;
         var _interpolationFunction = TWEEN.Interpolation.Linear;
-        var _chainedTweens = [];
         var _onStartCallback = null;
         var _onStartCallbackFired = false;
         var _onUpdateCallback = null;
@@ -120,8 +115,7 @@ module.exports = (function() {
 
             _onStartCallbackFired = false;
 
-            _startTime = (time !== undefined ? time : window.performance.now() );
-            _startTime += _delayTime;
+            _startTime = time;
 
             Object.keys(_valuesEnd).forEach(function(property) {
                 // check if an Array was provided as property value
@@ -166,31 +160,6 @@ module.exports = (function() {
 
             }
 
-            this.stopChainedTweens();
-            return this;
-
-        };
-
-        this.stopChainedTweens = function () {
-
-            for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
-
-                _chainedTweens[ i ].stop();
-
-            }
-
-        };
-
-        this.delay = function ( amount ) {
-
-            _delayTime = amount;
-            return this;
-
-        };
-
-        this.repeat = function ( times ) {
-
-            _repeat = times;
             return this;
 
         };
@@ -205,13 +174,6 @@ module.exports = (function() {
         this.interpolation = function ( interpolation ) {
 
             _interpolationFunction = interpolation;
-            return this;
-
-        };
-
-        this.chain = function () {
-
-            _chainedTweens = arguments;
             return this;
 
         };
@@ -244,13 +206,7 @@ module.exports = (function() {
 
         };
 
-        this.update = function ( time ) {
-
-            if ( time < _startTime ) {
-
-                return true;
-
-            }
+        this.update = function ( time, backward ) {
 
             if ( _onStartCallbackFired === false ) {
 
@@ -265,7 +221,7 @@ module.exports = (function() {
             }
 
             var elapsed = ( time - _startTime ) / _duration;
-            elapsed = elapsed > 1 ? 1 : elapsed;
+            elapsed = ( elapsed > 1 ? 1 : ( elapsed < 0 ? 0 : elapsed ) );
 
             var value = _easingFunction( elapsed );
 
@@ -274,7 +230,7 @@ module.exports = (function() {
                 var start = _valuesStart[ property ] || 0;
                 var end = _valuesEnd[ property ];
 
-                if ( end instanceof Array ) {
+                if ( Array.isArray( end ) ) {
 
                     _object[ property ] = _interpolationFunction( end, value );
 
@@ -300,46 +256,17 @@ module.exports = (function() {
 
             }
 
-            if ( elapsed === 1 ) {
+            if (
+                ( backward && ( elapsed === 0 ) ) ||
+                ( !backward && ( elapsed === 1 ) )
+            ) {
+                if ( _onCompleteCallback !== null ) {
 
-                if ( _repeat > 0 ) {
-
-                    if( isFinite( _repeat ) ) {
-                        _repeat--;
-                    }
-
-                    // reassign starting values, restart by making startTime = now
-                    Object.keys(_valuesStartRepeat).forEach(function(property) {
-
-                        if ( typeof( _valuesEnd[ property ] ) === 'string' ) {
-                            _valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat(_valuesEnd[ property ], 10);
-                        }
-
-                        _valuesStart[ property ] = _valuesStartRepeat[ property ];
-
-                    });
-
-                    _startTime = time + _delayTime;
-
-                    return true;
-
-                } else {
-
-                    if ( _onCompleteCallback !== null ) {
-
-                        _onCompleteCallback.call( _object );
-
-                    }
-
-                    for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
-
-                        _chainedTweens[ i ].start( time );
-
-                    }
-
-                    return false;
+                    _onCompleteCallback.call( _object );
 
                 }
+
+                return false;
 
             }
 
