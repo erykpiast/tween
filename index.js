@@ -44,11 +44,13 @@ module.exports = (function() {
 
             update: function ( time ) {
 
-                if ( _tweens.length === 0 ) return false;
+                if ( _tweens.length === 0 ) {
+                    return false;
+                }
 
                 var i = 0;
 
-                time = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
+                time = (time !== undefined ? time : window.performance.now());
 
                 while ( i < _tweens.length ) {
 
@@ -94,11 +96,9 @@ module.exports = (function() {
         var _onStopCallback = null;
 
         // Set all starting values present on the target object
-        for ( var field in object ) {
-
+        Object.keys(object).forEach(function(field) {
             _valuesStart[ field ] = parseFloat(object[field], 10);
-
-        }
+        });
 
         this.to = function ( properties, duration ) {
 
@@ -122,17 +122,16 @@ module.exports = (function() {
 
             _onStartCallbackFired = false;
 
-            _startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
+            _startTime = (time !== undefined ? time : window.performance.now() );
             _startTime += _delayTime;
 
-            for ( var property in _valuesEnd ) {
-
+            Object.keys(_valuesEnd).forEach(function(property) {
                 // check if an Array was provided as property value
-                if ( _valuesEnd[ property ] instanceof Array ) {
+                if ( Array.isArray( _valuesEnd[ property ] ) ) {
 
                     if ( _valuesEnd[ property ].length === 0 ) {
 
-                        continue;
+                        return false;
 
                     }
 
@@ -143,13 +142,12 @@ module.exports = (function() {
 
                 _valuesStart[ property ] = _object[ property ];
 
-                if( ( _valuesStart[ property ] instanceof Array ) === false ) {
+                if( ! Array.isArray( _valuesStart[ property ] ) ) {
                     _valuesStart[ property ] *= 1.0; // Ensures we're using numbers, not strings
                 }
 
                 _valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
-
-            }
+            });
 
             return this;
 
@@ -258,8 +256,6 @@ module.exports = (function() {
 
         this.update = function ( time ) {
 
-            var property;
-
             if ( time < _startTime ) {
 
                 return true;
@@ -283,7 +279,7 @@ module.exports = (function() {
 
             var value = _easingFunction( elapsed );
 
-            for ( property in _valuesEnd ) {
+            Object.keys(_valuesEnd).forEach(function(property) {
 
                 var start = _valuesStart[ property ] || 0;
                 var end = _valuesEnd[ property ];
@@ -295,18 +291,18 @@ module.exports = (function() {
                 } else {
 
                     // Parses relative end values with start as base (e.g.: +10, -3)
-                    if ( typeof(end) === "string" ) {
+                    if ( typeof(end) === 'string' ) {
                         end = start + parseFloat(end, 10);
                     }
 
                     // protect against non numeric properties.
-                    if ( typeof(end) === "number" ) {
+                    if ( typeof(end) === 'number' ) {
                         _object[ property ] = start + ( end - start ) * value;
                     }
 
                 }
 
-            }
+            });
 
             if ( _onUpdateCallback !== null ) {
 
@@ -314,7 +310,7 @@ module.exports = (function() {
 
             }
 
-            if ( elapsed == 1 ) {
+            if ( elapsed === 1 ) {
 
                 if ( _repeat > 0 ) {
 
@@ -323,9 +319,9 @@ module.exports = (function() {
                     }
 
                     // reassign starting values, restart by making startTime = now
-                    for( property in _valuesStartRepeat ) {
+                    Object.keys(_valuesStartRepeat).forEach(function(property) {
 
-                        if ( typeof( _valuesEnd[ property ] ) === "string" ) {
+                        if ( typeof( _valuesEnd[ property ] ) === 'string' ) {
                             _valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat(_valuesEnd[ property ], 10);
                         }
 
@@ -337,7 +333,7 @@ module.exports = (function() {
 
                         _valuesStart[ property ] = _valuesStartRepeat[ property ];
 
-                    }
+                    });
 
                     if (_yoyo) {
                         _reversed = !_reversed;
